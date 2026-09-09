@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 684" width="720" height="684" font-family="Meiryo, 'Yu Gothic', 'Hiragino Kaku Gothic ProN', sans-serif">
+<rect width="720" height="684" fill="#ffffff"/>
+<text x="360" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#1c2024">巻き上げ中、部材は真上に上がらず横に振れる</text>
+<text x="360" y="47" text-anchor="middle" font-size="12" fill="#64748b">左のワイヤーだけを 2.10m → 1.05m に巻き上げた場合（シミュレータの実際の計算結果）</text>
+<g transform="translate(0,22)">
+<line x1="73" y1="60" x2="427.7" y2="60" stroke="#94a3b8" stroke-width="2.5"/>
+<g stroke="#94a3b8" stroke-width="1.4"><line x1="77" y1="60" x2="67" y2="48"/><line x1="97" y1="60" x2="87" y2="48"/><line x1="117" y1="60" x2="107" y2="48"/><line x1="137" y1="60" x2="127" y2="48"/><line x1="157" y1="60" x2="147" y2="48"/><line x1="177" y1="60" x2="167" y2="48"/><line x1="197" y1="60" x2="187" y2="48"/><line x1="217" y1="60" x2="207" y2="48"/><line x1="237" y1="60" x2="227" y2="48"/><line x1="257" y1="60" x2="247" y2="48"/><line x1="277" y1="60" x2="267" y2="48"/><line x1="297" y1="60" x2="287" y2="48"/><line x1="317" y1="60" x2="307" y2="48"/><line x1="337" y1="60" x2="327" y2="48"/><line x1="357" y1="60" x2="347" y2="48"/><line x1="377" y1="60" x2="367" y2="48"/><line x1="397" y1="60" x2="387" y2="48"/><line x1="417" y1="60" x2="407" y2="48"/></g>
+<line x1="90" y1="70" x2="90" y2="585" stroke="#0891b2" stroke-width="1.2" stroke-dasharray="4 4"/>
+<line x1="352.6" y1="70" x2="352.6" y2="585" stroke="#16a34a" stroke-width="1.2" stroke-dasharray="4 4"/>
+<polygon points="154.5,485.2 291.6,513.8 284,550.3 329.7,559.9 352.6,450.2 306.9,440.7 299.2,477.3 162.2,448.6" fill="rgba(37,99,235,0.07)" stroke="#2563eb" stroke-width="2"/>
+<polygon points="139.8,435.3 266,496 249.8,529.6 291.9,549.8 340.4,448.9 298.3,428.7 282.2,462.3 155.9,401.7" fill="rgba(37,99,235,0.10)" stroke="#93b4ee" stroke-width="1.2" stroke-dasharray="5 3"/>
+<polygon points="124.5,374.8 228.5,468.6 203.4,496.3 238.1,527.6 313.1,444.4 278.5,413.1 253.5,440.8 149.5,347.1" fill="rgba(37,99,235,0.13)" stroke="#93b4ee" stroke-width="1.2" stroke-dasharray="5 3"/>
+<polygon points="105.9,314 180.3,432.7 148.6,452.5 173.4,492.1 268.3,432.6 243.5,393 211.9,412.9 137.6,294.2" fill="rgba(37,99,235,0.16)" stroke="#93b4ee" stroke-width="1.2" stroke-dasharray="5 3"/>
+<polygon points="90,268.9 140.3,399.6 105.5,413 122.2,456.6 226.8,416.3 210,372.8 175.2,386.2 124.9,255.5" fill="rgba(37,99,235,0.19)" stroke="#2563eb" stroke-width="2"/>
+<line x1="110.3" y1="60" x2="162.2" y2="448.6" stroke="#b8c0cc" stroke-width="2.2"/>
+<line x1="390.4" y1="60" x2="352.6" y2="450.2" stroke="#b8c0cc" stroke-width="2.2"/>
+<line x1="110.3" y1="60" x2="124.9" y2="255.5" stroke="#334155" stroke-width="2.4"/>
+<line x1="390.4" y1="60" x2="226.8" y2="416.3" stroke="#334155" stroke-width="2.4"/>
+<polygon points="101.3,51 119.3,51 110.3,64" fill="#94a3b8"/>
+<polygon points="381.4,51 399.4,51 390.4,64" fill="#94a3b8"/>
+<polyline points="272.6,490.8 270.1,488 267.5,485.2 264.9,482.3 262.3,479.3 259.6,476.3 256.8,473.2 254,470.1 251.1,466.9 248,463.6 244.9,460.2 241.6,456.8 238.2,453.3 234.6,449.7 230.9,446 227,442.3 222.9,438.4 218.7,434.5 214.3,430.4 209.8,426.3 205,422 200.1,417.6 195.1,413.1 189.9,408.5 184.6,403.8 179.2,399 173.7,394 168.1,388.9 162.5,383.7 156.8,378.3 151.1,372.8 149.4,371.1" fill="none" stroke="#ea580c" stroke-width="2.6"/>
+<circle cx="272.6" cy="490.8" r="2.6" fill="#ea580c"/><circle cx="256.8" cy="473.2" r="2.6" fill="#ea580c"/><circle cx="238.2" cy="453.3" r="2.6" fill="#ea580c"/><circle cx="214.3" cy="430.4" r="2.6" fill="#ea580c"/><circle cx="184.6" cy="403.8" r="2.6" fill="#ea580c"/><circle cx="151.1" cy="372.8" r="2.6" fill="#ea580c"/>
+<circle cx="272.6" cy="490.8" r="7" fill="#fff" stroke="#ea580c" stroke-width="2.5"/>
+<circle cx="149.4" cy="371.1" r="7" fill="#fff" stroke="#ea580c" stroke-width="2.5"/>
+
+<!-- 引き出し -->
+<g stroke="#9ca3af" stroke-width="1" fill="none">
+  <path d="M279,493 L432,516"/>
+  <path d="M156,368 L432,286"/>
+  <path d="M205,422 L432,392"/>
+</g>
+<g font-size="13" font-weight="bold" fill="#1c2024">
+  <text x="438" y="290">終わりの位置</text>
+  <text x="438" y="396">重心の通り道</text>
+  <text x="438" y="520">始めの位置</text>
+</g>
+<g font-size="11" fill="#64748b">
+  <text x="438" y="308">左だけ 1.05m まで巻いた</text>
+  <text x="438" y="324">部材の傾き <tspan font-weight="bold" fill="#dc2626">68.9°</tspan></text>
+  <text x="438" y="340">張力 <tspan font-weight="bold" fill="#dc2626">左86% / 右15%</tspan></text>
+  <text x="438" y="356">＝ ほぼ左の1本で吊っている</text>
+  <text x="438" y="412">真上ではなく左上へ動く</text>
+  <text x="438" y="536">両ワイヤー 2.10m</text>
+  <text x="438" y="552">部材の傾き 11.8°</text>
+  <text x="438" y="568">張力 左42% / 右58%</text>
+  <text x="438" y="584">＊重心が偏っているので最初から傾く</text>
+</g>
+<!-- 寸法 -->
+<line x1="90" y1="605" x2="352.6" y2="605" stroke="#1c2024" stroke-width="1.2"/>
+<polygon points="90,605 100,601 100,609" fill="#1c2024"/>
+<polygon points="352.6,605 342.6,601 342.6,609" fill="#1c2024"/>
+<line x1="90" y1="585" x2="90" y2="612" stroke="#0891b2" stroke-width="1.2"/>
+<line x1="352.6" y1="585" x2="352.6" y2="612" stroke="#16a34a" stroke-width="1.2"/>
+<rect x="182" y="588" width="80" height="20" fill="#ffffff"/>
+<text x="221" y="603" text-anchor="middle" font-size="15" font-weight="bold" fill="#1c2024">1.41 m</text>
+<text x="221" y="634" text-anchor="middle" font-size="12" fill="#64748b">部材が左右に通る幅（周囲との干渉はここを見る）</text>
+<text x="596" y="634" text-anchor="middle" font-size="11" fill="#64748b">部材そのものの幅は 1.00 m</text>
+</g>
+</svg>

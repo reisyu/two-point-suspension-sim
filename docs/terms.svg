@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" width="760" height="470"
+     font-family="Meiryo, 'Yu Gothic', 'Hiragino Kaku Gothic ProN', sans-serif">
+  <rect width="760" height="470" fill="#ffffff"/>
+  <text x="380" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#1c2024">画面の名前と、現場での呼び方</text>
+
+  <!-- 天井・クレーン側 -->
+  <line x1="195" y1="70" x2="565" y2="70" stroke="#94a3b8" stroke-width="2.5"/>
+  <g stroke="#94a3b8" stroke-width="1.5">
+    <line x1="200" y1="70" x2="190" y2="58"/><line x1="222" y1="70" x2="212" y2="58"/>
+    <line x1="244" y1="70" x2="234" y2="58"/><line x1="266" y1="70" x2="256" y2="58"/>
+    <line x1="288" y1="70" x2="278" y2="58"/><line x1="310" y1="70" x2="300" y2="58"/>
+    <line x1="332" y1="70" x2="322" y2="58"/><line x1="354" y1="70" x2="344" y2="58"/>
+    <line x1="376" y1="70" x2="366" y2="58"/><line x1="398" y1="70" x2="388" y2="58"/>
+    <line x1="420" y1="70" x2="410" y2="58"/><line x1="442" y1="70" x2="432" y2="58"/>
+    <line x1="464" y1="70" x2="454" y2="58"/><line x1="486" y1="70" x2="476" y2="58"/>
+    <line x1="508" y1="70" x2="498" y2="58"/><line x1="530" y1="70" x2="520" y2="58"/>
+    <line x1="552" y1="70" x2="542" y2="58"/>
+  </g>
+  <text x="380" y="52" text-anchor="middle" font-size="12" fill="#64748b">クレーン側（フック・天秤・梁など動かない点）</text>
+
+  <!-- ワイヤー -->
+  <line x1="285" y1="70" x2="275" y2="330" stroke="#334155" stroke-width="2.5"/>
+  <line x1="475" y1="70" x2="485" y2="330" stroke="#334155" stroke-width="2.5"/>
+
+  <!-- アンカー記号 -->
+  <g fill="#94a3b8">
+    <polygon points="276,61 294,61 285,74"/>
+    <polygon points="466,61 484,61 475,74"/>
+  </g>
+
+  <!-- 部材 -->
+  <rect x="240" y="330" width="280" height="50" fill="#dbe6fb" stroke="#2563eb" stroke-width="2"/>
+
+  <!-- 取付点 -->
+  <circle cx="275" cy="330" r="6" fill="#ffffff" stroke="#334155" stroke-width="2.5"/>
+  <circle cx="485" cy="330" r="6" fill="#ffffff" stroke="#334155" stroke-width="2.5"/>
+
+  <!-- 重心マーク -->
+  <g>
+    <path d="M380,355 L371,355 A9,9 0 0 1 380,346 Z" fill="#1c2024"/>
+    <path d="M380,355 L389,355 A9,9 0 0 1 380,364 Z" fill="#1c2024"/>
+    <circle cx="380" cy="355" r="9" fill="none" stroke="#1c2024" stroke-width="1.8"/>
+  </g>
+
+  <!-- 引き出し線 -->
+  <g stroke="#9ca3af" stroke-width="1" fill="none">
+    <path d="M285,76 L205,112"/>
+    <path d="M475,76 L555,112"/>
+    <path d="M280,200 L200,200"/>
+    <path d="M480,200 L560,200"/>
+    <path d="M269,330 L200,300"/>
+    <path d="M491,330 L560,300"/>
+    <path d="M380,364 L380,425 L330,425"/>
+    <path d="M470,380 L530,418"/>
+  </g>
+
+  <g font-size="13" fill="#1c2024">
+    <text x="200" y="116" text-anchor="end">吊り点 <tspan font-weight="bold">A₁</tspan></text>
+    <text x="560" y="116" text-anchor="start">吊り点 <tspan font-weight="bold">A₂</tspan></text>
+    <text x="195" y="204" text-anchor="end">ワイヤー長 <tspan font-weight="bold">L₁</tspan></text>
+    <text x="565" y="204" text-anchor="start">ワイヤー長 <tspan font-weight="bold">L₂</tspan></text>
+    <text x="195" y="304" text-anchor="end">取付点 <tspan font-weight="bold">a₁</tspan></text>
+    <text x="565" y="304" text-anchor="start">取付点 <tspan font-weight="bold">a₂</tspan></text>
+    <text x="325" y="429" text-anchor="end">重心 <tspan font-weight="bold">G</tspan></text>
+    <text x="534" y="422" text-anchor="start">部材（吊り上げるもの）</text>
+  </g>
+
+  <g font-size="11" fill="#64748b">
+    <text x="200" y="132" text-anchor="end">＝ 玉掛け用具を掛ける先</text>
+    <text x="560" y="132" text-anchor="start">（動かない側）</text>
+    <text x="195" y="220" text-anchor="end">＝ 巻き上げで変わる長さ</text>
+    <text x="195" y="320" text-anchor="end">＝ 部材側の吊りピース</text>
+    <text x="565" y="320" text-anchor="start">（部材と一緒に動く）</text>
+  </g>
+
+  <text x="380" y="458" text-anchor="middle" font-size="12" fill="#64748b">※ 吊り点 A₁ と A₂ を同じ位置にすれば、1つのフックから2本で吊る形になります</text>
+</svg>

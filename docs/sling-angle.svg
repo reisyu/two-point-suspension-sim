@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" width="760" height="430"
+     font-family="Meiryo, 'Yu Gothic', 'Hiragino Kaku Gothic ProN', sans-serif">
+  <rect width="760" height="430" fill="#ffffff"/>
+  <text x="380" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#1c2024">ワイヤーを開くほど、ワイヤーにかかる力は大きくなる</text>
+  <text x="380" y="48" text-anchor="middle" font-size="12" fill="#64748b">部材の重さは3つとも同じ。ワイヤーを短くすると角度が開く</text>
+
+  <line x1="255" y1="70" x2="255" y2="380" stroke="#e5e7eb"/>
+  <line x1="505" y1="70" x2="505" y2="380" stroke="#e5e7eb"/>
+
+  <!-- ============ 吊り角 0°（天秤） ============ -->
+  <path d="M130,84 a8,8 0 1 1 0,16" fill="none" stroke="#64748b" stroke-width="2.5"/>
+  <line x1="130" y1="100" x2="130" y2="140" stroke="#334155" stroke-width="2.5"/>
+  <rect x="48" y="140" width="164" height="14" rx="2" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="130" y="132" text-anchor="middle" font-size="11" fill="#64748b">天秤（スプレッダー）</text>
+  <line x1="60" y1="154" x2="60" y2="250" stroke="#334155" stroke-width="2.5"/>
+  <line x1="200" y1="154" x2="200" y2="250" stroke="#334155" stroke-width="2.5"/>
+  <rect x="60" y="250" width="140" height="34" fill="#dbe6fb" stroke="#2563eb" stroke-width="2"/>
+  <line x1="60" y1="170" x2="60" y2="240" stroke="#0f766e" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="130" y="312" text-anchor="middle" font-size="14" font-weight="bold" fill="#0f766e">吊り角 0°</text>
+  <text x="130" y="340" text-anchor="middle" font-size="15" font-weight="bold" fill="#1c2024">各ワイヤー 50%</text>
+  <text x="130" y="362" text-anchor="middle" font-size="12" fill="#64748b">いちばん小さい</text>
+
+  <!-- ============ 吊り角 30° ============ -->
+  <path d="M380,113 a8,8 0 1 1 0,16" fill="none" stroke="#64748b" stroke-width="2.5"/>
+  <line x1="380" y1="129" x2="310" y2="250" stroke="#334155" stroke-width="2.5"/>
+  <line x1="380" y1="129" x2="450" y2="250" stroke="#334155" stroke-width="2.5"/>
+  <rect x="310" y="250" width="140" height="34" fill="#dbe6fb" stroke="#2563eb" stroke-width="2"/>
+  <line x1="380" y1="129" x2="380" y2="230" stroke="#0f766e" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <path d="M380,171 A42,42 0 0 0 401,165.4" fill="none" stroke="#0f766e" stroke-width="1.8"/>
+  <text x="400" y="190" font-size="13" font-weight="bold" fill="#0f766e">30°</text>
+  <text x="380" y="312" text-anchor="middle" font-size="14" font-weight="bold" fill="#0f766e">吊り角 30°</text>
+  <text x="380" y="340" text-anchor="middle" font-size="15" font-weight="bold" fill="#1c2024">各ワイヤー 58%</text>
+  <text x="380" y="362" text-anchor="middle" font-size="12" fill="#64748b">1割ほど増える</text>
+
+  <!-- ============ 吊り角 60° ============ -->
+  <path d="M630,194 a8,8 0 1 1 0,16" fill="none" stroke="#64748b" stroke-width="2.5"/>
+  <line x1="630" y1="210" x2="560" y2="250" stroke="#334155" stroke-width="2.5"/>
+  <line x1="630" y1="210" x2="700" y2="250" stroke="#334155" stroke-width="2.5"/>
+  <rect x="560" y="250" width="140" height="34" fill="#dbe6fb" stroke="#2563eb" stroke-width="2"/>
+  <line x1="630" y1="210" x2="630" y2="248" stroke="#0f766e" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <path d="M630,244 A34,34 0 0 0 659.5,226.9" fill="none" stroke="#dc2626" stroke-width="1.8"/>
+  <text x="664" y="236" font-size="13" font-weight="bold" fill="#dc2626">60°</text>
+  <text x="630" y="312" text-anchor="middle" font-size="14" font-weight="bold" fill="#dc2626">吊り角 60°</text>
+  <text x="630" y="340" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">各ワイヤー 100%</text>
+  <text x="630" y="362" text-anchor="middle" font-size="12" fill="#dc2626">部材の重さがそのまま1本に</text>
+
+  <rect x="150" y="382" width="460" height="34" rx="6" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="380" y="404" text-anchor="middle" font-size="13" fill="#1c2024">1本にかかる力 ＝ 部材の重さ ÷ 2 ÷ cos（吊り角）</text>
+</svg>
