@@ -1,0 +1,5 @@
+# エディタ・OSの生成物
+.DS_Store
+Thumbs.db
+*.bak
+*.dxfbak
