@@ -191,6 +191,7 @@
         <option value="phi">φ曲線（現在の長さでのポテンシャル）</option>
         <option value="coord">巻き上げ経路：重心の座標</option>
         <option value="edge">巻き上げ経路：左右端の x 座標</option>
+        <option value="dx">巻き上げ経路：初期位置からの左右変位</option>
         <option value="angle">巻き上げ経路：糸と取付点線の角度</option>
         <option value="tension">巻き上げ経路：糸の張力</option>
         <option value="theta">巻き上げ経路：姿勢角</option>
@@ -491,23 +492,25 @@ function circInt(c1,r1,c2,r2){
   return [{x:mx+h*ux,y:my+h*uy},{x:mx-h*ux,y:my-h*uy}];
 }
 const NPHI=720;
-function buildCurve(){
+/* 糸1の角度 φ と組み立て分岐から、四節リンクの姿勢を1つ求める */
+function assembleAt(phi,branch){
   const a1=strings[0].a, a2=strings[1].a;
   const d=hyp(a2.x-a1.x,a2.y-a1.y), u=Math.atan2(a2.y-a1.y,a2.x-a1.x);
+  const p1={x:strings[0].A.x+strings[0].L*Math.cos(phi),
+            y:strings[0].A.y+strings[0].L*Math.sin(phi)};
+  const sol=circInt(p1,d,strings[1].A,strings[1].L);
+  if(!sol) return null;
+  const p2=sol[branch];
+  const t=Math.atan2(p2.y-p1.y,p2.x-p1.x)-u;
+  const c=Math.cos(t), s=Math.sin(t);
+  const Gp={x:p1.x-(c*a1.x-s*a1.y), y:p1.y-(s*a1.x+c*a1.y)};
+  return {phi:phi, th:t, G:Gp, p1:p1, p2:p2, yG:Gp.y};
+}
+function buildCurve(){
   const br=[[],[]];
   for(let k=0;k<NPHI;k++){
     const phi=k/NPHI*TAU;
-    const p1={x:strings[0].A.x+strings[0].L*Math.cos(phi),
-              y:strings[0].A.y+strings[0].L*Math.sin(phi)};
-    const sol=circInt(p1,d,strings[1].A,strings[1].L);
-    for(let b=0;b<2;b++){
-      if(!sol){ br[b].push(null); continue; }
-      const p2=sol[b];
-      const t=Math.atan2(p2.y-p1.y,p2.x-p1.x)-u;
-      const c=Math.cos(t), s=Math.sin(t);
-      const Gp={x:p1.x-(c*a1.x-s*a1.y), y:p1.y-(s*a1.x+c*a1.y)};
-      br[b].push({phi:phi, th:t, G:Gp, p1:p1, p2:p2, yG:Gp.y});
-    }
+    for(let b=0;b<2;b++) br[b].push(assembleAt(phi,b));
   }
   return br;
 }
@@ -542,10 +545,20 @@ function findEquilibria(br){
       const c=arr[k], a=arr[(k-1+NPHI)%NPHI], b=arr[(k+1)%NPHI];
       if(!c||!a||!b) continue;
       if(!(c.yG<=a.yG && c.yG<b.yG)) continue;      // 局所極小
-      const T=tensions(c.p1,c.p2,c.G);
+      // 格子点で止めると位置が φ の刻み幅（360°/720）に量子化されて
+      // 変位のグラフが階段状になるので、放物線を当てて極小を細分化する。
+      let r=c;
+      const den=a.yG-2*c.yG+b.yG;
+      if(Math.abs(den)>1e-18){
+        let dk=0.5*(a.yG-b.yG)/den;
+        if(dk>0.5) dk=0.5; else if(dk<-0.5) dk=-0.5;
+        const rr=assembleAt(c.phi+dk*(TAU/NPHI), bi);
+        if(rr && rr.yG<=c.yG) r=rr;
+      }
+      const T=tensions(r.p1,r.p2,r.G);
       if(!T || T.res>0.03) continue;                // 力のつり合いが取れない偽の極小を除去
-      out.push({mode:'2本とも張る', branch:bi, phi:c.phi, th:c.th, yG:c.yG,
-                T1:T.T1, T2:T.T2, ok:(T.T1>-1e-3 && T.T2>-1e-3), cfg:c});
+      out.push({mode:'2本とも張る', branch:bi, phi:r.phi, th:r.th, yG:r.yG,
+                T1:T.T1, T2:T.T2, ok:(T.T1>-1e-3 && T.T2>-1e-3), cfg:r});
     }
   }
   // 片方だけで吊る解（もう一方はたるむ）
@@ -653,6 +666,7 @@ function computeLocus(){
     pts.push({t:t, G:{x:g.x,y:g.y}, th:best.th, mode:best.mode,
               T1:best.T1, T2:best.T2, L1:L[0], L2:L[1],
               pL:ex.L, pR:ex.R, an1:an.a1, an2:an.a2, anL:an.line,
+              pa1:an.p[0], pa2:an.p[1],
               step:sg?sg.i:0, kind:sg?sg.kind:'move'});
   }
   strings[0].L=L10; strings[1].L=L20;
@@ -987,6 +1001,13 @@ function drawHoistPlot(kind){
     series=[{n:'最左 x',c:'#0891b2',f:p=>p.pL.x},{n:'最右 x',c:'#16a34a',f:p=>p.pR.x},
             {n:'重心 x',c:'#ea580c',f:p=>p.G.x}];
     ylab='x 座標 [m]';
+  }else if(kind==='dx'){
+    // 手順開始時（経路の先頭サンプル）を基準にした左右方向の変位。右が正。
+    const b=P[0];
+    series=[{n:'取付点 a₁',c:'#2563eb',f:p=>p.pa1.x-b.pa1.x},
+            {n:'取付点 a₂',c:'#db2777',f:p=>p.pa2.x-b.pa2.x},
+            {n:'重心 G',   c:'#ea580c',f:p=>p.G.x  -b.G.x}];
+    ylab='初期位置からの左右変位 Δx [m]';
   }else if(kind==='angle'){
     series=[{n:'糸1（鉛直から）',c:'#0f766e',f:p=>p.an1},
             {n:'糸2（鉛直から）',c:'#0891b2',f:p=>p.an2},
@@ -1004,6 +1025,11 @@ function drawHoistPlot(kind){
   const pad=(hi-lo)*0.12+1e-3; lo-=pad; hi+=pad;
   const F=plotFrame(0,locus.tmax,lo,hi,'手順の経過時間 t [s]',ylab);
   const all=locus.pts;
+  // 符号付きの量は 0 の基準線を引く（どちら側にどれだけ振れたかを読むため）
+  if((kind==='dx'||kind==='angle') && lo<0 && hi>0){
+    pctx.strokeStyle='rgba(15,23,42,.35)'; pctx.lineWidth=1;
+    pctx.beginPath(); pctx.moveTo(F.ml,F.PY(0)); pctx.lineTo(F.W-F.mr,F.PY(0)); pctx.stroke();
+  }
   // 静定待ちの区間を薄く塗る
   if(locus.sc) locus.sc.segs.forEach(function(g){
     if(g.kind!=='hold') return;
