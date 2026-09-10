@@ -327,6 +327,8 @@ function fmtNum(v){
   return a>=1000?v.toFixed(0):a>=100?v.toFixed(1):a>=10?v.toFixed(2):v.toFixed(3);
 }
 const fmtT = tSim => fmtNum(tensionDisp(tSim))+' '+forceName;
+const fmtMass = kg => kg>=1000 ? (kg/1000).toFixed(3)+' t'
+  : kg>=1 ? kg.toFixed(1)+' kg' : kg.toPrecision(3)+' kg';
 const pctW = tSim => (tSim/(body.m*G_ACC)*100);       // 全重量に対する割合
 let ghost=null;   // 掃引形状のシルエット（オフスクリーン）
 
@@ -404,6 +406,10 @@ function stringAngles(gx,gy,t){
 }
 const wp = s => ({x:X.x+Math.cos(th)*s.a.x-Math.sin(th)*s.a.y,
                   y:X.y+Math.sin(th)*s.a.x+Math.cos(th)*s.a.y});
+/* 角度を -180..180 に畳む。物体が何回も回ると θ は際限なく増えるため、
+   表示だけは常にこの範囲に収める。 */
+const wrapDeg=d=>((d%360)+540)%360-180;
+
 /* 表示用の張り／たるみ判定（solver 内の s.taut は反復途中で上書きされるため使わない） */
 function tautNow(s){ const p=wp(s); return hyp(p.x-s.A.x,p.y-s.A.y) >= s.L-2e-4; }
 
@@ -520,7 +526,11 @@ function startPlay(fromTop,onlyOneStep){
   if(!playSched.segs.length){ return; }
   if(onlyOneStep){
     const s=segAt(playSched,playT+1e-6);
-    const cur=s?s.i:0;
+    let cur=s?s.i:0;
+    // ステップ0（開始長さでの静定）は独立した工程ではないので、
+    // 次のステップとまとめて実行する。そうしないと1回目の「次のステップ」が
+    // ただ待つだけで終わり、押した回数とステップ番号がずれる。
+    if(cur<0) cur=0;
     let end=playSched.total;
     for(const g of playSched.segs) if(g.i===cur) end=g.t1;   // そのステップの待ちまで
     playStop=end;
@@ -560,12 +570,42 @@ function assembleAt(phi,branch){
   const Gp={x:p1.x-(c*a1.x-s*a1.y), y:p1.y-(s*a1.x+c*a1.y)};
   return {phi:phi, th:t, G:Gp, p1:p1, p2:p2, yG:Gp.y};
 }
+/* 四節リンクが組める φ の範囲を解析的に求める。
+   p1 は A1 を中心とする半径 L1 の円上にあり、|p1-A2| が
+   [|L2-d|, L2+d] に入るときだけ組み立てられる。余弦定理から
+   cos(φ-α) の範囲が出るので、そこから φ の区間が決まる。
+   一様に 2π を刻むと、この範囲が狭いとき（取付点が近接している等）
+   格子がまたいでしまい解を見落とす。 */
+function feasiblePhiRanges(){
+  const a1=strings[0].a, a2=strings[1].a;
+  const d=hyp(a2.x-a1.x,a2.y-a1.y);
+  const A1=strings[0].A, A2=strings[1].A, L1=strings[0].L, L2=strings[1].L;
+  const R=hyp(A2.x-A1.x,A2.y-A1.y), al=Math.atan2(A2.y-A1.y,A2.x-A1.x);
+  const lo=Math.abs(L2-d), hi=L2+d;
+  const inBand=r=>(r>=lo-1e-12 && r<=hi+1e-12);
+  if(R<1e-12) return inBand(L1)?[[0,TAU]]:[];        // 吊り点が同一
+  if(L1<1e-12) return inBand(R)?[[0,TAU]]:[];        // ワイヤー1が長さ0
+  const cAt=r=>(L1*L1+R*R-r*r)/(2*L1*R);
+  let cLo=cAt(hi), cHi=cAt(lo);                      // 距離が大きいほど cos は小さい
+  if(cLo>cHi){ const t=cLo; cLo=cHi; cHi=t; }
+  if(cHi<-1 || cLo>1) return [];
+  const p=Math.acos(Math.min(1,Math.max(-1,cHi)));
+  const q=Math.acos(Math.min(1,Math.max(-1,cLo)));   // 0 <= p <= q <= π
+  if(q-p<1e-15) return [];
+  return [[al+p,al+q],[al-q,al-p]];
+}
 function buildCurve(){
-  const br=[[],[]];
-  for(let k=0;k<NPHI;k++){
-    const phi=k/NPHI*TAU;
-    for(let b=0;b<2;b++) br[b].push(assembleAt(phi,b));
-  }
+  const rng=feasiblePhiRanges(), br=[[],[]];
+  if(!rng.length) return br;
+  const tot=rng.reduce((s,r)=>s+(r[1]-r[0]),0);
+  rng.forEach(function(r){
+    const n=Math.max(16, Math.round(NPHI*(r[1]-r[0])/tot));
+    for(let k=0;k<=n;k++){
+      const phi=r[0]+(r[1]-r[0])*k/n;
+      br[0].push(assembleAt(phi,0)); br[1].push(assembleAt(phi,1));
+    }
+    br[0].push(null); br[1].push(null);              // 区間の切れ目
+  });
   return br;
 }
 
@@ -594,20 +634,25 @@ function tensions(p1,p2,Gp){
 function findEquilibria(br){
   const out=[];
   for(let bi=0;bi<2;bi++){
-    const arr=br[bi];
-    for(let k=0;k<NPHI;k++){
-      const c=arr[k], a=arr[(k-1+NPHI)%NPHI], b=arr[(k+1)%NPHI];
+    const arr=br[bi], NA=arr.length;
+    for(let k=0;k<NA;k++){
+      const c=arr[k], a=arr[(k-1+NA)%NA], b=arr[(k+1)%NA];
       if(!c||!a||!b) continue;
       if(!(c.yG<=a.yG && c.yG<b.yG)) continue;      // 局所極小
-      // 格子点で止めると位置が φ の刻み幅（360°/720）に量子化されて
-      // 変位のグラフが階段状になるので、放物線を当てて極小を細分化する。
-      let r=c;
-      const den=a.yG-2*c.yG+b.yG;
-      if(Math.abs(den)>1e-18){
-        let dk=0.5*(a.yG-b.yG)/den;
-        if(dk>0.5) dk=0.5; else if(dk<-0.5) dk=-0.5;
-        const rr=assembleAt(c.phi+dk*(TAU/NPHI), bi);
-        if(rr && rr.yG<=c.yG) r=rr;
+      // 格子点で止めると位置が φ の刻み幅（360°/720）に量子化される。
+      // 放物線を当てて極小を細分化し、間隔を詰めながら数回繰り返して
+      // 機械精度近くまで追い込む（1回だけだと張力に 1e-6 程度の誤差が残る）。
+      let r=c, step=Math.abs(b.phi-c.phi)||Math.abs(c.phi-a.phi)||TAU/NPHI;
+      for(let it=0; it<5; it++){
+        const am=assembleAt(r.phi-step,bi), bp=assembleAt(r.phi+step,bi);
+        if(!am||!bp) break;
+        const den=am.yG-2*r.yG+bp.yG;
+        if(!(Math.abs(den)>1e-300)) break;
+        let dk=0.5*(am.yG-bp.yG)/den;
+        if(dk>1) dk=1; else if(dk<-1) dk=-1;
+        const rr=assembleAt(r.phi+dk*step,bi);
+        if(rr && rr.yG<=r.yG) r=rr;
+        step*=0.25;
       }
       const T=tensions(r.p1,r.p2,r.G);
       if(!T || T.res>0.03) continue;                // 力のつり合いが取れない偽の極小を除去
@@ -615,6 +660,33 @@ function findEquilibria(br){
                 T1:T.T1, T2:T.T2, ok:(T.T1>-1e-3 && T.T2>-1e-3), cfg:r});
     }
   }
+  // 取付点が一致（両ワイヤーを同じ吊りピースへ）＝1点吊り。
+  // 四節リンクが点に退化するので別扱いにする。吊り位置は2円の交点で決まり、
+  // 物体はそこを支点に自由に回れるので、重心が真下に来る姿勢が安定。
+  const dAtt=hyp(strings[1].a.x-strings[0].a.x, strings[1].a.y-strings[0].a.y);
+  if(dAtt<1e-9){
+    const sol=circInt(strings[0].A,strings[0].L,strings[1].A,strings[1].L);
+    if(sol){
+      const p=sol[0].y<=sol[1].y?sol[0]:sol[1];          // 低いほうが安定
+      const av=strings[0].a, ra=hyp(av.x,av.y);
+      const t=ra<1e-12?th:(Math.PI/2-Math.atan2(av.y,av.x));
+      const c=Math.cos(t), s=Math.sin(t);
+      const G={x:p.x-(c*av.x-s*av.y), y:p.y-(s*av.x+c*av.y)};
+      const u1={x:strings[0].A.x-p.x,y:strings[0].A.y-p.y}, n1=hyp(u1.x,u1.y);
+      const u2={x:strings[1].A.x-p.x,y:strings[1].A.y-p.y}, n2=hyp(u2.x,u2.y);
+      if(n1>1e-12&&n2>1e-12){
+        const e1={x:u1.x/n1,y:u1.y/n1}, e2={x:u2.x/n2,y:u2.y/n2};
+        const det=e1.x*e2.y-e2.x*e1.y, W=body.m*G_ACC;
+        if(Math.abs(det)>1e-12){
+          const T1=-e2.x*W/det, T2=e1.x*W/det;          // 力は同一点に働くのでモーメントは自動的に満たされる
+          if(T1>-1e-9&&T2>-1e-9)
+            out.push({mode:'1点吊り', branch:-1, phi:null, th:t, yG:G.y,
+                      T1:T1, T2:T2, ok:true, single:{Gp:G}});
+        }
+      }
+    }
+  }
+
   // 片方だけで吊る解（もう一方はたるむ）
   for(let i=0;i<2;i++){
     const si=strings[i], sj=strings[1-i];
@@ -646,7 +718,7 @@ function refresh(){
    たどる。ワイヤーがたるむ／張り直すモード遷移もそこで自動的に拾われる。          */
 /* 数値入力はスライダの範囲に縛らない（CAD図面はスケールが任意なので）。
    実際の下限・上限は実質無制限で、正の値でありさえすればよい。        */
-const clampL=v=>Math.max(1e-4,Math.min(1e5,v));
+const clampL=v=>Number.isNaN(v)?1e-4:Math.max(1e-4,Math.min(1e5,v));
 let SLMIN=0.15, SLMAX=2.60;                 // スライダの範囲（幾何に合わせて更新）
 function updateLengthLimits(){
   let rad=0; body.verts.forEach(function(v){ rad=Math.max(rad,hyp(v.x,v.y)); });
@@ -1038,20 +1110,20 @@ function drawPhiPlot(){
     plotMsg('この寸法では 2本とも張った状態が存在しません（ワイヤーが短すぎ／長すぎ）'); return;
   }
   const pad=(hi-lo)*0.12+1e-3; lo-=pad; hi+=pad;
-  const F=plotFrame(0,NPHI,lo,hi,'ワイヤー1の角度 φ₁','重心高さ y_G [m]',['0','π/2','π','3π/2','2π']);
+  const F=plotFrame(0,TAU,lo,hi,'ワイヤー1の角度 φ₁','重心高さ y_G [m]',['0','π/2','π','3π/2','2π']);
   const cols=['#2563eb','#db2777'];
   cachedCurve.forEach((arr,bi)=>{
     pctx.strokeStyle=cols[bi]; pctx.lineWidth=1.9; pctx.beginPath(); let up=true;
     arr.forEach((c,k)=>{
       if(!c){up=true;return;}
-      const x=F.PX(k),y=F.PY(c.yG);
+      const x=F.PX((c.phi%TAU+TAU)%TAU),y=F.PY(c.yG);
       if(up){pctx.moveTo(x,y);up=false;} else pctx.lineTo(x,y);
     });
     pctx.stroke();
   });
   if(cachedEq) cachedEq.forEach(e=>{
     if(e.branch<0||e.phi===null) return;
-    const k=e.phi/TAU*NPHI;
+    const k=(e.phi%TAU+TAU)%TAU;
     pctx.beginPath(); pctx.arc(F.PX(k),F.PY(e.yG),4.5,0,TAU);
     pctx.fillStyle=e.ok?cols[e.branch]:'#fff'; pctx.fill();
     pctx.strokeStyle=e.ok?'#fff':'#dc2626'; pctx.lineWidth=1.6; pctx.stroke();
@@ -1059,7 +1131,7 @@ function drawPhiPlot(){
   if(tautNow(strings[0])&&tautNow(strings[1])){
     const q=wp(strings[0]);
     const phi=(Math.atan2(q.y-strings[0].A.y,q.x-strings[0].A.x)+TAU)%TAU;
-    const x=F.PX(phi/TAU*NPHI), y=F.PY(X.y);
+    const x=F.PX(phi), y=F.PY(X.y);
     pctx.save(); pctx.translate(x,y); pctx.rotate(Math.PI/4);
     pctx.fillStyle='#111'; pctx.fillRect(-4.5,-4.5,9,9);
     pctx.strokeStyle='#fff'; pctx.lineWidth=1.6; pctx.strokeRect(-4.5,-4.5,9,9);
@@ -1174,7 +1246,7 @@ function renderState(){
   document.getElementById('state').innerHTML=
     '<div class="k"><span>状態</span><span>'+tag+near+'</span></div>'+
     '<div class="k"><span>重心高さ y<sub>G</sub></span><span>'+X.y.toFixed(4)+' m</span></div>'+
-    '<div class="k"><span>姿勢 θ</span><span>'+(th*180/Math.PI).toFixed(2)+'°</span></div>'+
+    '<div class="k"><span>姿勢 θ</span><span>'+wrapDeg(th*180/Math.PI).toFixed(2)+'°</span></div>'+
     '<div class="k"><span>ワイヤーの傾き（鉛直から）</span><span>'+
       (AN.a1>=0?'+':'')+AN.a1.toFixed(2)+'° / '+(AN.a2>=0?'+':'')+AN.a2.toFixed(2)+'°</span></div>'+
     '<div class="k"><span>ワイヤーのなす角（開き）</span><span>'+Math.abs(AN.a1-AN.a2).toFixed(2)+'°</span></div>'+
@@ -1185,7 +1257,7 @@ function renderState(){
     '<div class="k"><span>張力 T₂</span><span>'+fmtT(strings[1].T)+
       ' <span style="color:#6b7280">('+pctW(strings[1].T).toFixed(0)+'%)</span></span></div>'+
     '<div class="k"><span>速さ / 角速度</span><span>'+spd.toFixed(3)+' m/s, '+om.toFixed(3)+' rad/s</span></div>'+
-    '<div class="k"><span>部材の重量</span><span>'+(massKg>=1000?(massKg/1000).toFixed(3)+' t':massKg.toFixed(1)+' kg')+'</span></div>';
+    '<div class="k"><span>部材の重量</span><span>'+fmtMass(massKg)+'</span></div>';
 }
 function renderEq(){
   const tb=document.querySelector('#eqtab tbody'); tb.innerHTML='';
@@ -1784,7 +1856,7 @@ function syncWeight(){
   }
   const w=massKg*G_ACC/forceDiv;
   document.getElementById('weightout').textContent=
-    fmtNum(w)+' '+forceName+'（'+(massKg>=1000?(massKg/1000).toFixed(3)+' t':massKg.toFixed(1)+' kg')+'）';
+    fmtNum(w)+' '+forceName+'（'+fmtMass(massKg)+'）';
 }
 document.getElementById('massv').addEventListener('input',function(e){
   const v=parseFloat(e.target.value);
