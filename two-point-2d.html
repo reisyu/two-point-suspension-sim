@@ -69,6 +69,12 @@
   .t-ok{background:#d1fae5;color:#065f46} .t-warn{background:#fef3c7;color:#92400e}
   .t-bad{background:#fee2e2;color:#991b1b} .t-info{background:#dbeafe;color:#1e40af}
   .hint{color:var(--muted);font-size:11.5px;margin-top:8px;line-height:1.7}
+  .transport{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 4px 0}
+  .transport #progress{margin-left:auto;color:var(--muted);font-size:12px;
+                       font-variant-numeric:tabular-nums;text-align:right}
+  .plotbar{display:flex;align-items:center;gap:8px;margin:0 4px 8px}
+  .plotbar label{color:var(--muted);font-size:12px;white-space:nowrap}
+  .plotbar select{flex:1;min-width:0}
   .legend{color:var(--muted);font-size:11.5px;line-height:1.8;margin:8px 4px 2px;
           padding-top:8px;border-top:1px solid #eef0f3}
   .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
@@ -85,12 +91,19 @@
 <body>
 <div class="wrap">
   <h1>2点吊りシミュレーション（2次元剛体）</h1>
-  <p class="sub">剛体を2本の伸びないワイヤーで吊り、減衰つきで運動させる。ワイヤーを巻き上げると、重心がたどる準静的な経路を連続法で先に求めて重ねて描く。下段グラフは右のセレクタで切り替え。</p>
+  <p class="sub">部材を2本のワイヤーで吊り上げるとき、<b>どう傾くか・どこまで横に振れるか・どちらのワイヤーに力が寄るか</b>を、作業前に確かめるツールです。</p>
 
   <div class="main">
     <div>
       <div class="card" style="padding:8px">
         <canvas id="sim" width="760" height="560"></canvas>
+        <div class="transport">
+          <button id="play2" class="primary">▶ 再生</button>
+          <button id="stepnext">⏭ 次のステップ</button>
+          <button id="rew">↺ 先頭へ</button>
+          <button id="wclr">軌跡を消す</button>
+          <span id="progress">–</span>
+        </div>
         <p class="legend">
           <b>操作</b> &mdash; <b>吊り点</b>(▽)・<b>取付点</b>(○)・<b>物体</b>をドラッグ、または右の欄に数値を直接入力（双方向に同期）。物体は <b>Shift+ドラッグ</b>で回転。<br>
           <b>図の色</b> &mdash; <span class="sw" style="background:#a8c0ee"></span>掃引形状（手順全体で物体が通過した領域）、破線の輪郭＝各ステップの到達姿勢。
@@ -102,6 +115,18 @@
         </p>
       </div>
       <div class="card" style="margin-top:14px;padding:8px">
+        <div class="plotbar">
+          <label for="plotmode">下段グラフ</label>
+          <select id="plotmode">
+            <option value="phi">φ曲線（現在の長さでのポテンシャル）</option>
+            <option value="coord">巻き上げ経路：重心の座標</option>
+            <option value="edge">巻き上げ経路：左右端の x 座標</option>
+            <option value="dx">巻き上げ経路：初期位置からの左右変位</option>
+            <option value="angle">巻き上げ経路：ワイヤーと取付点線の角度</option>
+            <option value="tension">巻き上げ経路：ワイヤーの張力</option>
+            <option value="theta">巻き上げ経路：姿勢角</option>
+          </select>
+        </div>
         <canvas id="plot" width="760" height="210"></canvas>
         <p class="legend" id="plotlegend">
           <b>φ曲線</b> &mdash; <span class="sw" style="background:#2563eb"></span>分岐A
@@ -177,6 +202,16 @@
         <label>L&#8322;</label><input id="L2" type="range" min="0.3" max="2.6" step="0.01"><output id="L2o"></output>
       </div>
 
+      <h2>部材の重量</h2>
+      <p class="note">張力の表示だけに効きます（運動そのものは重量によらないため）。</p>
+      <div class="num" style="grid-template-columns:auto 1fr auto">
+        <b>重量</b><input id="massv" type="number" step="any" min="0"><select id="massu">
+          <option value="1">kg</option><option value="1000">t</option></select>
+        <b>張力の単位</b><span></span><select id="forceu">
+          <option value="1000">kN</option><option value="9806.65">tf</option>
+          <option value="9.80665">kgf</option><option value="1">N</option></select>
+      </div>
+      <div class="k"><span>部材の重さ（＝両ワイヤーの合計）</span><span id="weightout">–</span></div>
       <h2>ステップ（巻き上げ手順）</h2>
       <p class="note"><b>ステップ0が開始長さ</b>（上の L₁ / L₂ スライダと連動）。以降の各行で到達させたい長さを指定する。
         速度は「動きの大きいほうのワイヤー」の速度で、両方が同時に到達するよう配分される。
@@ -188,12 +223,8 @@
       <div class="row" style="margin-top:8px">
         <button id="stepadd">＋ ステップ追加</button>
       </div>
-      <div class="row">
-        <button id="play2" class="primary">▶ 再生</button>
-        <button id="stepnext">⏭ 次のステップ</button>
-        <button id="rew">↺ 先頭へ</button>
-        <button id="wclr">軌跡を消す</button>
-      </div>
+      <p class="note">再生ボタンはビューの下にあります。</p>
+
       <h2>軌跡の表示</h2>
       <div class="cbs">
         <label><input type="checkbox" id="tghost"><span class="sw" style="background:#a8c0ee"></span>掃引形状</label>
@@ -209,31 +240,8 @@
       <div class="k"><span>現在の左右端 x</span><span id="curx">–</span></div>
       <div class="k"><span>手順全体の掃引幅</span><span id="sweep">–</span></div>
 
-      <div class="k" style="margin-top:8px"><span>進行</span><span id="progress">–</span></div>
-      <div class="k"><span>現在の長さ (ワイヤー1 / ワイヤー2)</span><span id="curlen">–</span></div>
+      <div class="k" style="margin-top:8px"><span>現在の長さ (ワイヤー1 / ワイヤー2)</span><span id="curlen">–</span></div>
       <div class="k"><span>重心の移動 (水平 / 鉛直)</span><span id="gdisp">–</span></div>
-
-      <h2>下段グラフ</h2>
-      <div class="row"><select id="plotmode" style="flex:1">
-        <option value="phi">φ曲線（現在の長さでのポテンシャル）</option>
-        <option value="coord">巻き上げ経路：重心の座標</option>
-        <option value="edge">巻き上げ経路：左右端の x 座標</option>
-        <option value="dx">巻き上げ経路：初期位置からの左右変位</option>
-        <option value="angle">巻き上げ経路：ワイヤーと取付点線の角度</option>
-        <option value="tension">巻き上げ経路：ワイヤーの張力</option>
-        <option value="theta">巻き上げ経路：姿勢角</option>
-      </select></div>
-
-      <h2>部材の重量</h2>
-      <p class="note">張力の表示だけに効きます（運動そのものは重量によらないため）。</p>
-      <div class="num" style="grid-template-columns:auto 1fr auto">
-        <b>重量</b><input id="massv" type="number" step="any" min="0"><select id="massu">
-          <option value="1">kg</option><option value="1000">t</option></select>
-        <b>張力の単位</b><span></span><select id="forceu">
-          <option value="1000">kN</option><option value="9806.65">tf</option>
-          <option value="9.80665">kgf</option><option value="1">N</option></select>
-      </div>
-      <div class="k"><span>部材の重さ（＝両ワイヤーの合計）</span><span id="weightout">–</span></div>
 
       <h2>物理</h2>
       <div class="ctl">
@@ -241,7 +249,7 @@
         <label>重力</label><input id="grav" type="range" min="0" max="20" step="0.1"><output id="gravo"></output>
       </div>
       <div class="row">
-        <button id="play" class="primary">■ 停止</button>
+        <button id="play">⏸ 計算を一時停止</button>
         <button id="reset">リセット</button>
         <button id="kick">揺らす</button>
         <button id="rand">ランダム姿勢</button>
@@ -519,7 +527,7 @@ function startPlay(fromTop,onlyOneStep){
   }else playStop=playSched.total;
   if(playT>=playStop-1e-9) return;
   playing=true; running=true;
-  document.getElementById('play').textContent='■ 停止';
+  syncRunBtn();
   syncPlayBtn();
 }
 function endPlay(){ playing=false; syncPlayBtn(); dirty=true; locusDirty=true; }
@@ -1328,7 +1336,7 @@ bind('L2',1.5,v=>{strings[1].L=v;settle();dirty=true;schedDirty();},v=>v.toFixed
    各 h2 の直後から次の h2 までを .sec でくくり、見出しクリックで開閉する。
    中身は DOM に残るので、畳んだままでも id 参照や同期処理はそのまま働く。 */
 const FOLD_DEFAULT=['CAD読み込み（DXF）','吊り点 A（天井側・グローバル座標）',
-                    '取付点 a（物体側・ローカル座標）','下段グラフ','物理'];
+                    '取付点 a（物体側・ローカル座標）','物理'];
 const FOLD_SECS=[];
 function makeCollapsible(){
   const card=document.getElementById('panel');
@@ -1817,9 +1825,14 @@ Object.keys(SHAPES).forEach(function(k){
   const o=document.createElement('option'); o.value=k; o.textContent=SHAPES[k].name; sel.appendChild(o);
 });
 sel.addEventListener('change',function(){loadShape(sel.value);});
-document.getElementById('play').onclick=function(e){
-  running=!running; e.target.textContent=running?'■ 停止':'▶ 実行';
-};
+/* 物理計算そのものの一時停止。手順の「▶ 再生」とは別物なので、
+   ボタン名でもはっきり区別する。 */
+function syncRunBtn(){
+  const b=document.getElementById('play');
+  b.textContent = running?'⏸ 計算を一時停止':'▶ 計算を再開';
+  b.classList.toggle('primary', !running);
+}
+document.getElementById('play').onclick=function(){ running=!running; syncRunBtn(); };
 document.getElementById('reset').onclick=function(){reset();};
 document.getElementById('kick').onclick=function(){
   V.x+=(Math.random()*2-1)*2.2; om+=(Math.random()*2-1)*5;
@@ -1834,6 +1847,7 @@ document.getElementById('rand').onclick=function(){
 /* ---------- ループ ---------- */
 loadShape('rect');
 renderSteps();
+syncRunBtn();
 makeCollapsible();
 fitCanvases();
 refresh();
