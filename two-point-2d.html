@@ -197,6 +197,17 @@
         <option value="theta">巻き上げ経路：姿勢角</option>
       </select></div>
 
+      <h2>部材の重量</h2>
+      <p class="note">張力の表示だけに効きます（運動そのものは重量によらないため）。1 kg 〜 2000 t 程度まで。</p>
+      <div class="num" style="grid-template-columns:auto 1fr auto">
+        <b>重量</b><input id="massv" type="number" step="any" min="0"><select id="massu">
+          <option value="1">kg</option><option value="1000">t</option></select>
+        <b>張力の単位</b><span></span><select id="forceu">
+          <option value="1000">kN</option><option value="9806.65">tf</option>
+          <option value="9.80665">kgf</option><option value="1">N</option></select>
+      </div>
+      <div class="k"><span>部材の重さ（＝両ワイヤーの合計）</span><span id="weightout">–</span></div>
+
       <h2>物理</h2>
       <div class="ctl">
         <label>減衰</label><input id="damp" type="range" min="0" max="3" step="0.02"><output id="dampo"></output>
@@ -214,7 +225,7 @@
 
       <h2>つり合い解の列挙</h2>
       <table id="eqtab"><thead><tr>
-        <th>モード</th><th>y<sub>G</sub></th><th>T&#8321;</th><th>T&#8322;</th><th></th>
+        <th>モード</th><th>y<sub>G</sub></th><th id="thT1">T&#8321;</th><th id="thT2">T&#8322;</th><th></th>
       </tr></thead><tbody></tbody></table>
       <p class="hint" id="eqnote"></p>
     </div>
@@ -258,7 +269,7 @@ function massProps(pts){
 }
 
 /* ---------- 状態 ---------- */
-let G_ACC=9.81, damp=0.6, running=true;
+let G_ACC=9.80665, damp=0.6, running=true;
 let body={verts:[],m:1,I:1};
 let X={x:0,y:1.2}, th=0, V={x:0,y:0}, om=0;
 let strings=[
@@ -274,6 +285,22 @@ let steps=[{L1:1.10,L2:1.10,v:0.08,hold:2.0},
 let startHold=1.0;                      // ステップ0（初期状態）の静定時間
 let playing=false, playT=0, playStop=0, playSched=null, seqStart=null, frameN=0;
 const SHOW={ghost:true, com:true, left:true, right:true, env:true, ang:true};
+
+/* ---------- 部材の重量と張力の単位 ----------
+   シミュレーションは質量1kgで解いている。質量と慣性モーメントが比例して
+   スケールするため運動は質量によらず同じで、張力だけが重量に比例する。
+   よって実重量は「表示の倍率」としてだけ効かせればよい。            */
+let massKg=1000;            // 部材の実重量 [kg]
+let forceDiv=1000;          // 表示単位 1つあたりの N 数（kN なら 1000）
+let forceName='kN';
+const tensionN = tSim => tSim*massKg;                 // 実際の張力 [N]
+const tensionDisp = tSim => tensionN(tSim)/forceDiv;  // 表示単位での値
+function fmtNum(v){
+  const a=Math.abs(v);
+  return a>=1000?v.toFixed(0):a>=100?v.toFixed(1):a>=10?v.toFixed(2):v.toFixed(3);
+}
+const fmtT = tSim => fmtNum(tensionDisp(tSim))+' '+forceName;
+const pctW = tSim => (tSim/(body.m*G_ACC)*100);       // 全重量に対する割合
 let ghost=null;   // 掃引形状のシルエット（オフスクリーン）
 
 /* 経路上の全姿勢の多角形をオフスクリーンに塗り重ねて和集合を作る。
@@ -1014,8 +1041,8 @@ function drawHoistPlot(kind){
             {n:'取付点線（水平から）',c:'#7c3aed',f:p=>p.anL}];
     ylab='角度 [°]';
   }else if(kind==='tension'){
-    series=[{n:'T₁',c:'#2563eb',f:p=>p.T1},{n:'T₂',c:'#db2777',f:p=>p.T2}];
-    ylab='張力 [N]';
+    series=[{n:'T₁',c:'#2563eb',f:p=>tensionDisp(p.T1)},{n:'T₂',c:'#db2777',f:p=>tensionDisp(p.T2)}];
+    ylab='張力 ['+forceName+']';
   }else{
     series=[{n:'θ',c:'#7c3aed',f:p=>((p.th*180/Math.PI)%360+540)%360-180}];
     ylab='姿勢角 θ [°]';
@@ -1099,13 +1126,17 @@ function renderState(){
     '<div class="k"><span>糸のなす角（開き）</span><span>'+Math.abs(AN.a1-AN.a2).toFixed(2)+'°</span></div>'+
     '<div class="k"><span>取付点線 a₁→a₂（水平から）</span><span>'+
       (AN.line>=0?'+':'')+AN.line.toFixed(2)+'°</span></div>'+
-    '<div class="k"><span>張力 T₁</span><span>'+strings[0].T.toFixed(2)+' N</span></div>'+
-    '<div class="k"><span>張力 T₂</span><span>'+strings[1].T.toFixed(2)+' N</span></div>'+
+    '<div class="k"><span>張力 T₁</span><span>'+fmtT(strings[0].T)+
+      ' <span style="color:#6b7280">('+pctW(strings[0].T).toFixed(0)+'%)</span></span></div>'+
+    '<div class="k"><span>張力 T₂</span><span>'+fmtT(strings[1].T)+
+      ' <span style="color:#6b7280">('+pctW(strings[1].T).toFixed(0)+'%)</span></span></div>'+
     '<div class="k"><span>速さ / 角速度</span><span>'+spd.toFixed(3)+' m/s, '+om.toFixed(3)+' rad/s</span></div>'+
-    '<div class="k"><span>質量 / 慣性</span><span>'+body.m.toFixed(2)+' kg, '+body.I.toFixed(4)+' kg·m²</span></div>';
+    '<div class="k"><span>部材の重量</span><span>'+(massKg>=1000?(massKg/1000).toFixed(3)+' t':massKg.toFixed(1)+' kg')+'</span></div>';
 }
 function renderEq(){
   const tb=document.querySelector('#eqtab tbody'); tb.innerHTML='';
+  document.getElementById('thT1').innerHTML='T&#8321; ['+forceName+']';
+  document.getElementById('thT2').innerHTML='T&#8322; ['+forceName+']';
   if(!cachedEq) return;
   const first=cachedEq.findIndex(e=>e.ok);
   cachedEq.forEach((e,i)=>{
@@ -1114,7 +1145,7 @@ function renderEq(){
                 : (i===first ? '<span class="tag t-ok">大域最小</span>'
                              : '<span class="tag t-info">局所極小</span>');
     tr.innerHTML='<td>'+e.mode+'</td><td>'+e.yG.toFixed(4)+'</td>'+
-      '<td>'+e.T1.toFixed(2)+'</td><td>'+e.T2.toFixed(2)+'</td><td>'+badge+'</td>';
+      '<td>'+fmtNum(tensionDisp(e.T1))+'</td><td>'+fmtNum(tensionDisp(e.T2))+'</td><td>'+badge+'</td>';
     tr.style.cursor='pointer'; tr.title='クリックでこの姿勢へ移動';
     tr.onclick=function(){
       if(e.cfg){ th=e.cfg.th; X={x:e.cfg.G.x,y:e.cfg.G.y}; }
@@ -1222,6 +1253,7 @@ function syncFields(){
     if(el.value!==v){ el.value=v; document.getElementById(p[0]+'o').textContent=v+' m'; }
   });
   const sl=startLengths();
+  syncWeight();
   document.querySelectorAll('#steptab .s0').forEach(function(el){
     if(document.activeElement===el) return;
     const v=sl[+el.dataset.i].toFixed(3);
@@ -1668,7 +1700,37 @@ document.getElementById('wclr').onclick=function(){ hoistTrace=[]; trace=[]; };
 });
 document.getElementById('plotmode').addEventListener('change',function(e){ plotMode=e.target.value; });
 bind('damp',0.6,v=>{damp=v;},v=>v.toFixed(2)+' /s');
-bind('grav',9.81,v=>{G_ACC=v;dirty=true;},v=>v.toFixed(2));
+bind('grav',9.80665,v=>{G_ACC=v;dirty=true;},v=>v.toFixed(2));
+
+/* ---------- 重量と張力の単位 ---------- */
+function syncWeight(){
+  const el=document.getElementById('massv'), u=+document.getElementById('massu').value;
+  if(document.activeElement!==el){
+    const v=massKg/u;
+    const t=v>=100?v.toFixed(1):v>=1?v.toFixed(3):v.toPrecision(3);
+    if(el.value!==t) el.value=t;
+  }
+  const w=massKg*G_ACC/forceDiv;
+  document.getElementById('weightout').textContent=
+    fmtNum(w)+' '+forceName+'（'+(massKg>=1000?(massKg/1000).toFixed(3)+' t':massKg.toFixed(1)+' kg')+'）';
+}
+document.getElementById('massv').addEventListener('input',function(e){
+  const v=parseFloat(e.target.value);
+  if(!isFinite(v)||v<=0) return;
+  massKg=v*(+document.getElementById('massu').value);
+  dirty=true;
+});
+document.getElementById('massu').addEventListener('change',function(){
+  // 入力欄の数値を、選び直した単位の値として読み直す
+  const v=parseFloat(document.getElementById('massv').value);
+  if(isFinite(v)&&v>0) massKg=v*(+this.value);
+  syncWeight(); dirty=true;
+});
+document.getElementById('forceu').addEventListener('change',function(e){
+  forceDiv=+e.target.value;
+  forceName=e.target.options[e.target.selectedIndex].text;
+  dirty=true;
+});
 
 document.getElementById('dxfbtn').onclick=function(){ document.getElementById('dxffile').click(); };
 document.getElementById('dxffile').addEventListener('change',function(e){
