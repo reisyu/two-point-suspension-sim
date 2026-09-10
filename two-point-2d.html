@@ -73,12 +73,17 @@
   .cbs{display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:8px}
   .cbs label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink);cursor:pointer}
   .cbs input{margin:0;cursor:pointer}
+  #results{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;align-items:start}
+  #results>div{min-width:0}
+  #results h2{margin-top:0;padding-top:0;border-top:0}
+  #results .hint{margin-top:6px}
+  @media (max-width:700px){ #results{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>2点吊りシミュレーション（2次元剛体）</h1>
-  <p class="sub">剛体を2本の伸びない糸で吊り、減衰つきで運動させる。糸を巻き上げると、重心がたどる準静的な経路を連続法で先に求めて重ねて描く。下段グラフは右のセレクタで切り替え。</p>
+  <p class="sub">剛体を2本の伸びないワイヤーで吊り、減衰つきで運動させる。ワイヤーを巻き上げると、重心がたどる準静的な経路を連続法で先に求めて重ねて描く。下段グラフは右のセレクタで切り替え。</p>
 
   <div class="main">
     <div>
@@ -88,8 +93,23 @@
       <div class="card" style="margin-top:14px;padding:8px">
         <canvas id="plot" width="760" height="210"></canvas>
       </div>
+
+      <div class="card" id="results">
+        <div>
+          <h2>現在の状態</h2>
+          <div id="state"></div>
+        </div>
+        <div>
+          <h2>つり合い解の列挙</h2>
+          <table id="eqtab"><thead><tr>
+            <th>モード</th><th>y<sub>G</sub></th><th id="thT1">T&#8321;</th><th id="thT2">T&#8322;</th><th></th>
+          </tr></thead><tbody></tbody></table>
+          <p class="hint" id="eqnote"></p>
+        </div>
+      </div>
+
       <p class="hint">
-        操作 &mdash; <b>アンカー</b>(▽)・<b>取付点</b>(○)・<b>物体</b>をドラッグ、または右の欄に数値を直接入力（双方向に同期）。物体は <b>Shift+ドラッグ</b>で回転。<br>
+        操作 &mdash; <b>吊り点</b>(▽)・<b>取付点</b>(○)・<b>物体</b>をドラッグ、または右の欄に数値を直接入力（双方向に同期）。物体は <b>Shift+ドラッグ</b>で回転。<br>
         φ曲線 &mdash; <span class="sw" style="background:#2563eb"></span>分岐A&nbsp;
         <span class="sw" style="background:#db2777"></span>分岐B&nbsp;
         ●＝つり合い点（極小）　◆＝現在位置。曲線が途切れる区間はリンクが組めない（解なし）領域。<br>
@@ -111,9 +131,9 @@
       <div class="row"><select id="shape" style="flex:1"></select></div>
 
       <h2>CAD読み込み（DXF）</h2>
-      <p class="note">物体の外形・糸・（任意で）重心をレイヤー分けした ASCII DXF。
+      <p class="note">物体の外形・ワイヤー・（任意で）重心をレイヤー分けした ASCII DXF。
         外形は閉じたポリライン、または端点の繋がった線分・円弧の集まり。
-        糸はちょうど2本の線分で描き、<b>y の大きいほうの端点をアンカー</b>、他方を取付点として解釈する。
+        ワイヤーはちょうど2本の線分で描き、<b>y の大きいほうの端点を吊り点</b>、他方を取付点として解釈する。
         円弧・bulge・円は折れ線に分割して取り込む。</p>
       <div class="row">
         <input type="file" id="dxffile" accept=".dxf,text/plain" style="display:none">
@@ -128,7 +148,7 @@
       <div class="row"><button id="dxfapply" class="primary" disabled>反映</button></div>
       <p class="hint" id="dxfmsg"></p>
 
-      <h2>吊り点 A（天井側・世界座標）</h2>
+      <h2>吊り点 A（天井側・グローバル座標）</h2>
       <div class="num">
         <b>A&#8321;</b><i>x</i><input id="A1x" type="number" step="0.01"><i>y</i><input id="A1y" type="number" step="0.01">
         <b>A&#8322;</b><i>x</i><input id="A2x" type="number" step="0.01"><i>y</i><input id="A2y" type="number" step="0.01">
@@ -147,7 +167,7 @@
       </div>
       <div class="k"><span>a&#8321;a&#8322; 間隔 d</span><span id="spanD"></span></div>
 
-      <h2>糸</h2>
+      <h2>ワイヤー長さ</h2>
       <div class="ctl">
         <label>L&#8321;</label><input id="L1" type="range" min="0.3" max="2.6" step="0.01"><output id="L1o"></output>
         <label>L&#8322;</label><input id="L2" type="range" min="0.3" max="2.6" step="0.01"><output id="L2o"></output>
@@ -155,7 +175,7 @@
 
       <h2>ステップ（巻き上げ手順）</h2>
       <p class="note"><b>ステップ0が開始長さ</b>（上の L₁ / L₂ スライダと連動）。以降の各行で到達させたい長さを指定する。
-        速度は「動きの大きいほうの糸」の速度で、両方が同時に到達するよう配分される。
+        速度は「動きの大きいほうのワイヤー」の速度で、両方が同時に到達するよう配分される。
         待ち＝到達後に静定させる時間（ステップ0は再生開始前の静定時間）。
         長さの数値入力はスライダの範囲に縛られないので、大きい図面でもそのまま入力できる。</p>
       <table id="steptab"><thead><tr>
@@ -178,14 +198,15 @@
         <label><input type="checkbox" id="tright"><span class="sw" style="background:#16a34a"></span>最右点</label>
         <label><input type="checkbox" id="tenv">掃引の限界線</label>
         <label><input type="checkbox" id="tang"><span class="sw" style="background:#0f766e"></span>角度</label>
+        <label><input type="checkbox" id="tten">張力</label>
       </div>
-      <p class="note">角度の符号 — 糸：鉛直下向きが 0°、取付点がアンカーより右にあるとき正。
+      <p class="note">角度の符号 — ワイヤー：鉛直下向きが 0°、取付点が吊り点より右にあるとき正。
         取付点線：a₁→a₂ が水平右向きで 0°、右上がりで正。</p>
       <div class="k"><span>現在の左右端 x</span><span id="curx">–</span></div>
       <div class="k"><span>手順全体の掃引幅</span><span id="sweep">–</span></div>
 
       <div class="k" style="margin-top:8px"><span>進行</span><span id="progress">–</span></div>
-      <div class="k"><span>現在の長さ (糸1 / 糸2)</span><span id="curlen">–</span></div>
+      <div class="k"><span>現在の長さ (ワイヤー1 / ワイヤー2)</span><span id="curlen">–</span></div>
       <div class="k"><span>重心の移動 (水平 / 鉛直)</span><span id="gdisp">–</span></div>
 
       <h2>下段グラフ</h2>
@@ -194,13 +215,13 @@
         <option value="coord">巻き上げ経路：重心の座標</option>
         <option value="edge">巻き上げ経路：左右端の x 座標</option>
         <option value="dx">巻き上げ経路：初期位置からの左右変位</option>
-        <option value="angle">巻き上げ経路：糸と取付点線の角度</option>
-        <option value="tension">巻き上げ経路：糸の張力</option>
+        <option value="angle">巻き上げ経路：ワイヤーと取付点線の角度</option>
+        <option value="tension">巻き上げ経路：ワイヤーの張力</option>
         <option value="theta">巻き上げ経路：姿勢角</option>
       </select></div>
 
       <h2>部材の重量</h2>
-      <p class="note">張力の表示だけに効きます（運動そのものは重量によらないため）。1 kg 〜 2000 t 程度まで。</p>
+      <p class="note">張力の表示だけに効きます（運動そのものは重量によらないため）。</p>
       <div class="num" style="grid-template-columns:auto 1fr auto">
         <b>重量</b><input id="massv" type="number" step="any" min="0"><select id="massu">
           <option value="1">kg</option><option value="1000">t</option></select>
@@ -222,14 +243,6 @@
         <button id="rand">ランダム姿勢</button>
       </div>
 
-      <h2>現在の状態</h2>
-      <div id="state"></div>
-
-      <h2>つり合い解の列挙</h2>
-      <table id="eqtab"><thead><tr>
-        <th>モード</th><th>y<sub>G</sub></th><th id="thT1">T&#8321;</th><th id="thT2">T&#8322;</th><th></th>
-      </tr></thead><tbody></tbody></table>
-      <p class="hint" id="eqnote"></p>
     </div>
   </div>
 </div>
@@ -286,7 +299,7 @@ let steps=[{L1:1.10,L2:1.10,v:0.08,hold:2.0},
            {L1:0.60,L2:1.10,v:0.06,hold:2.5}];
 let startHold=1.0;                      // ステップ0（初期状態）の静定時間
 let playing=false, playT=0, playStop=0, playSched=null, seqStart=null, frameN=0;
-const SHOW={ghost:true, com:true, left:true, right:true, env:true, ang:true};
+const SHOW={ghost:true, com:true, left:true, right:true, env:true, ang:true, ten:true};
 
 /* ---------- 部材の重量と張力の単位 ----------
    シミュレーションは質量1kgで解いている。質量と慣性モーメントが比例して
@@ -362,7 +375,7 @@ function extremePts(gx,gy,t,prevL,prevR){
           R:pick(pts.filter(p=>p.x>=mx-eps),prevR), mn:mn, mx:mx};
 }
 
-/* 角度：糸の鉛直からの振れ（右へ倒れるとき正）と、
+/* 角度：ワイヤーの鉛直からの振れ（右へ倒れるとき正）と、
    取付点 a₁→a₂ を結ぶ線の水平からの傾き（右上がりで正）。 */
 function stringAngles(gx,gy,t){
   const c=Math.cos(t), s=Math.sin(t);
@@ -435,7 +448,7 @@ function settle(){
 }
 
 function substep(h){
-  // 糸の長さはサブステップごとに更新する。フレームに1回だけまとめて変えると
+  // ワイヤーの長さはサブステップごとに更新する。フレームに1回だけまとめて変えると
   // 位置ソルバがその変位を h で割って速度に直すため、実際の巻き上げ速度の
   // サブステップ数倍の速度パルスが毎フレーム注入され、ガタつきの原因になる。
   if(playing && playSched){
@@ -521,7 +534,7 @@ function circInt(c1,r1,c2,r2){
   return [{x:mx+h*ux,y:my+h*uy},{x:mx-h*ux,y:my-h*uy}];
 }
 const NPHI=720;
-/* 糸1の角度 φ と組み立て分岐から、四節リンクの姿勢を1つ求める */
+/* ワイヤー1の角度 φ と組み立て分岐から、四節リンクの姿勢を1つ求める */
 function assembleAt(phi,branch){
   const a1=strings[0].a, a2=strings[1].a;
   const d=hyp(a2.x-a1.x,a2.y-a1.y), u=Math.atan2(a2.y-a1.y,a2.x-a1.x);
@@ -600,7 +613,7 @@ function findEquilibria(br){
     const pj={x:Gp.x+Math.cos(t)*sj.a.x-Math.sin(t)*sj.a.y,
               y:Gp.y+Math.sin(t)*sj.a.x+Math.cos(t)*sj.a.y};
     if(sj.L-hyp(pj.x-sj.A.x,pj.y-sj.A.y) <= 1e-4) continue;  // もう一方が張る→無効
-    out.push({mode:'糸'+(i+1)+'のみ', branch:-1, phi:null, th:t, yG:Gp.y,
+    out.push({mode:'ワイヤー'+(i+1)+'のみ', branch:-1, phi:null, th:t, yG:Gp.y,
               T1:i===0?body.m*G_ACC:0, T2:i===1?body.m*G_ACC:0, ok:true,
               single:{Gp:Gp}});
   }
@@ -618,7 +631,7 @@ function refresh(){
 
 /* ---------- 巻き上げ：準静的な平衡点の軌跡（連続法） ----------
    各長さ (L1,L2) でつり合い解を全部求め、直前の重心にいちばん近いものを選んで
-   たどる。糸がたるむ／張り直すモード遷移もそこで自動的に拾われる。          */
+   たどる。ワイヤーがたるむ／張り直すモード遷移もそこで自動的に拾われる。          */
 /* 数値入力はスライダの範囲に縛らない（CAD図面はスケールが任意なので）。
    実際の下限・上限は実質無制限で、正の値でありさえすればよい。        */
 const clampL=v=>Math.max(1e-4,Math.min(1e5,v));
@@ -637,7 +650,7 @@ function updateLengthLimits(){
 }
 
 /* 手順を時間軸に展開する。各ステップは「移動」＋「待ち」の2区間。
-   移動時間は変化量の大きいほうの糸で決まり、もう一方はそれに合わせて
+   移動時間は変化量の大きいほうのワイヤーで決まり、もう一方はそれに合わせて
    ゆっくり動く（＝2本が同時に目標長さへ到達する協調動作）。          */
 function schedule(startL1,startL2){
   const segs=[]; let L1=clampL(startL1), L2=clampL(startL2), t=0;
@@ -728,6 +741,30 @@ function drawAnchor(A,label){
   ctx.fillStyle='#64748b'; ctx.font='11px sans-serif'; ctx.textAlign='center';
   ctx.fillText(label, X0, Y0-14);
 }
+/* ワイヤーの中ほどに張力を表示する。線と重ならないよう法線方向へ少しずらす。 */
+function drawTensions(){
+  const S=stringAngles(X.x,X.y,th);
+  ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let i=0;i<2;i++){
+    if(!tautNow(strings[i])) continue;                 // たるんでいれば張力なし
+    const A=strings[i].A, p=S.p[i];
+    const ax=sx(A.x), ay=sy(A.y), px=sx(p.x), py=sy(p.y);
+    const dx=px-ax, dy=py-ay, len=hyp(dx,dy);
+    if(len<40) continue;
+    const nx=-dy/len, ny=dx/len;                       // 線の法線
+    const side=(i===0?-1:1);                           // ワイヤー1は左、ワイヤー2は右へ逃がす
+    const mx=ax+dx*0.55+nx*22*side, my=ay+dy*0.55+ny*22*side;
+    const txt=fmtT(strings[i].T);
+    const w=ctx.measureText(txt).width;
+    ctx.fillStyle='rgba(255,255,255,.9)';
+    ctx.fillRect(mx-w/2-4, my-9, w+8, 18);
+    ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1;
+    ctx.strokeRect(mx-w/2-4, my-9, w+8, 18);
+    ctx.fillStyle='#1c2024'; ctx.fillText(txt,mx,my);
+  }
+  ctx.textBaseline='alphabetic';
+}
+
 /* 鉛直・水平の基準線と円弧で角度を描く */
 function drawAngles(){
   const S=stringAngles(X.x,X.y,th);
@@ -902,8 +939,9 @@ function draw(){
   drawString(strings[1].A,p[1],strings[1].L,tt[1],tt[1]?'#334155':'#cbd5e1');
   drawAnchor(strings[0].A,'A₁'); drawAnchor(strings[1].A,'A₂');
 
-  // 角度の作図
+  // 角度と張力の作図
   if(SHOW.ang) drawAngles();
+  if(SHOW.ten) drawTensions();
 
   // 現在の最左点・最右点
   const exN=extremePts(X.x,X.y,th,null,null);
@@ -985,10 +1023,10 @@ function drawPhiPlot(){
   let lo=Infinity,hi=-Infinity;
   cachedCurve.forEach(a=>a.forEach(c=>{if(c){if(c.yG<lo)lo=c.yG; if(c.yG>hi)hi=c.yG;}}));
   if(!isFinite(lo)){
-    plotMsg('この寸法では 2本とも張った状態が存在しません（糸が短すぎ／長すぎ）'); return;
+    plotMsg('この寸法では 2本とも張った状態が存在しません（ワイヤーが短すぎ／長すぎ）'); return;
   }
   const pad=(hi-lo)*0.12+1e-3; lo-=pad; hi+=pad;
-  const F=plotFrame(0,NPHI,lo,hi,'糸1の角度 φ₁','重心高さ y_G [m]',['0','π/2','π','3π/2','2π']);
+  const F=plotFrame(0,NPHI,lo,hi,'ワイヤー1の角度 φ₁','重心高さ y_G [m]',['0','π/2','π','3π/2','2π']);
   const cols=['#2563eb','#db2777'];
   cachedCurve.forEach((arr,bi)=>{
     pctx.strokeStyle=cols[bi]; pctx.lineWidth=1.9; pctx.beginPath(); let up=true;
@@ -1038,8 +1076,8 @@ function drawHoistPlot(kind){
             {n:'重心 G',   c:'#ea580c',f:p=>p.G.x  -b.G.x}];
     ylab='初期位置からの左右変位 Δx [m]';
   }else if(kind==='angle'){
-    series=[{n:'糸1（鉛直から）',c:'#0f766e',f:p=>p.an1},
-            {n:'糸2（鉛直から）',c:'#0891b2',f:p=>p.an2},
+    series=[{n:'ワイヤー1（鉛直から）',c:'#0f766e',f:p=>p.an1},
+            {n:'ワイヤー2（鉛直から）',c:'#0891b2',f:p=>p.an2},
             {n:'取付点線（水平から）',c:'#7c3aed',f:p=>p.anL}];
     ylab='角度 [°]';
   }else if(kind==='tension'){
@@ -1123,9 +1161,9 @@ function renderState(){
     '<div class="k"><span>状態</span><span>'+tag+near+'</span></div>'+
     '<div class="k"><span>重心高さ y<sub>G</sub></span><span>'+X.y.toFixed(4)+' m</span></div>'+
     '<div class="k"><span>姿勢 θ</span><span>'+(th*180/Math.PI).toFixed(2)+'°</span></div>'+
-    '<div class="k"><span>糸の傾き（鉛直から）</span><span>'+
+    '<div class="k"><span>ワイヤーの傾き（鉛直から）</span><span>'+
       (AN.a1>=0?'+':'')+AN.a1.toFixed(2)+'° / '+(AN.a2>=0?'+':'')+AN.a2.toFixed(2)+'°</span></div>'+
-    '<div class="k"><span>糸のなす角（開き）</span><span>'+Math.abs(AN.a1-AN.a2).toFixed(2)+'°</span></div>'+
+    '<div class="k"><span>ワイヤーのなす角（開き）</span><span>'+Math.abs(AN.a1-AN.a2).toFixed(2)+'°</span></div>'+
     '<div class="k"><span>取付点線 a₁→a₂（水平から）</span><span>'+
       (AN.line>=0?'+':'')+AN.line.toFixed(2)+'°</span></div>'+
     '<div class="k"><span>張力 T₁</span><span>'+fmtT(strings[0].T)+
@@ -1283,7 +1321,7 @@ bind('L2',1.5,v=>{strings[1].L=v;settle();dirty=true;schedDirty();},v=>v.toFixed
 /* ==================== 見出しの折りたたみ ====================
    各 h2 の直後から次の h2 までを .sec でくくり、見出しクリックで開閉する。
    中身は DOM に残るので、畳んだままでも id 参照や同期処理はそのまま働く。 */
-const FOLD_DEFAULT=['CAD読み込み（DXF）','吊り点 A（天井側・世界座標）',
+const FOLD_DEFAULT=['CAD読み込み（DXF）','吊り点 A（天井側・グローバル座標）',
                     '取付点 a（物体側・ローカル座標）','下段グラフ','物理'];
 const FOLD_SECS=[];
 function makeCollapsible(){
@@ -1324,7 +1362,7 @@ function fitCanvases(){
     const w=Math.max(320, Math.round(c.clientWidth));
     if(!w || c.width===w) return;
     if(c===cv){
-      const cw=wx(c.width/2);        // 画面中央の世界座標を保つ
+      const cw=wx(c.width/2);        // 画面中央のグローバル座標を保つ
       c.width=w; OX=w/2-cw*SCALE;
     }else c.width=w;
     changed=true;
@@ -1353,7 +1391,7 @@ function fitView(){
 }
 
 /* ==================== DXF 読み込み ==================== */
-const ROLES=[['none','使わない'],['body','物体（外形）'],['wire','糸'],['com','重心']];
+const ROLES=[['none','使わない'],['body','物体（外形）'],['wire','ワイヤー'],['com','重心']];
 let parsedDXF=null, appliedUnit=null;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -1502,7 +1540,7 @@ const polyArea=p=>{let a=0;for(let i=0,j=p.length-1;i<p.length;j=i++)a+=p[j].x*p
 
 function guessRole(name){
   const s=name.toLowerCase();
-  if(/wire|string|rope|cable|line|糸|ワイヤ|ロープ|吊/.test(s)) return 'wire';
+  if(/wire|string|rope|cable|line|ワイヤー|ワイヤ|ロープ|吊/.test(s)) return 'wire';
   if(/cog|com|centroid|gravity|重心/.test(s)) return 'com';
   if(/body|outline|shape|part|物体|外形|形状|部材/.test(s)) return 'body';
   return 'none';
@@ -1585,18 +1623,18 @@ function applyDXF(keepSteps){
   all.forEach(function(l){ const a=Math.abs(polyArea(l)); if(a>best){best=a;poly=l;} });
   if(best<1e-12){ dxfMsg('外形の面積が 0 です。',true); return; }
   if(wireSegs.length!==2){
-    dxfMsg('「糸」レイヤーの線分が '+wireSegs.length+' 本です。ちょうど 2 本にしてください。',true); return;
+    dxfMsg('「ワイヤー」レイヤーの線分が '+wireSegs.length+' 本です。ちょうど 2 本にしてください。',true); return;
   }
   // 反時計回りに揃える
   if(polyArea(poly)<0) poly=poly.slice().reverse();
   const mp=massProps(poly.map(p=>[p.x,p.y]));
   const cen={x:mp.cx,y:mp.cy};
   const G0=comPt||cen;
-  // 糸：y が大きいほうの端点をアンカー、他方を取付点とする
+  // ワイヤー：y が大きいほうの端点を吊り点、他方を取付点とする
   const W=wireSegs.map(function(s){
     const A=s[0].y>=s[1].y?s[0]:s[1], p=s[0].y>=s[1].y?s[1]:s[0];
     return {A:A,p:p};
-  }).sort((a,b)=>a.A.x-b.A.x);          // アンカーが左のものを糸1に
+  }).sort((a,b)=>a.A.x-b.A.x);          // 吊り点が左のものをワイヤー1に
   body.verts=poly.map(p=>({x:p.x-G0.x, y:p.y-G0.y}));
   body.m=1;
   // 一様密度の重心まわり慣性を、指定された重心へ平行軸移動（重心を指定した場合の近似）
@@ -1637,7 +1675,7 @@ function startLengths(){
 const SCOL=[['L1','L₁'],['L2','L₂'],['v','速度'],['hold','待ち']];
 function renderSteps(){
   const tb=document.querySelector('#steptab tbody'); tb.innerHTML='';
-  // ステップ0：開始時の糸の長さそのもの（L₁/L₂ スライダと同じ値）
+  // ステップ0：開始時のワイヤーの長さそのもの（L₁/L₂ スライダと同じ値）
   const r0=document.createElement('tr');
   r0.innerHTML='<td>0</td>'+
     '<td><input class="s0" data-i="0" type="number" step="0.01" value="'+startLengths()[0].toFixed(3)+'"></td>'+
@@ -1713,7 +1751,7 @@ document.getElementById('rew').onclick=function(){
   dirty=true; locusDirty=true; syncPlayBtn(); highlightStep();
 };
 document.getElementById('wclr').onclick=function(){ hoistTrace=[]; trace=[]; };
-[['tghost','ghost'],['tcom','com'],['tleft','left'],['tright','right'],['tenv','env'],['tang','ang']].forEach(function(p){
+[['tghost','ghost'],['tcom','com'],['tleft','left'],['tright','right'],['tenv','env'],['tang','ang'],['tten','ten']].forEach(function(p){
   const el=document.getElementById(p[0]);
   el.checked=SHOW[p[1]];
   el.addEventListener('change',function(){ SHOW[p[1]]=el.checked; });
