@@ -69,6 +69,8 @@
   .t-ok{background:#d1fae5;color:#065f46} .t-warn{background:#fef3c7;color:#92400e}
   .t-bad{background:#fee2e2;color:#991b1b} .t-info{background:#dbeafe;color:#1e40af}
   .hint{color:var(--muted);font-size:11.5px;margin-top:8px;line-height:1.7}
+  .legend{color:var(--muted);font-size:11.5px;line-height:1.8;margin:8px 4px 2px;
+          padding-top:8px;border-top:1px solid #eef0f3}
   .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
   .cbs{display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:8px}
   .cbs label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink);cursor:pointer}
@@ -89,9 +91,23 @@
     <div>
       <div class="card" style="padding:8px">
         <canvas id="sim" width="760" height="560"></canvas>
+        <p class="legend">
+          <b>操作</b> &mdash; <b>吊り点</b>(▽)・<b>取付点</b>(○)・<b>物体</b>をドラッグ、または右の欄に数値を直接入力（双方向に同期）。物体は <b>Shift+ドラッグ</b>で回転。<br>
+          <b>図の色</b> &mdash; <span class="sw" style="background:#a8c0ee"></span>掃引形状（手順全体で物体が通過した領域）、破線の輪郭＝各ステップの到達姿勢。
+          重心の通り道：<span class="sw" style="background:#ea580c"></span>2本とも張る
+          <span class="sw" style="background:#7c3aed"></span>片方たるみ／
+          <span class="sw" style="background:#0891b2"></span>最左点
+          <span class="sw" style="background:#16a34a"></span>最右点。
+          丸数字＝各ステップの到達位置、○＝たるみ／張り直しの切り替わり点、破線＝掃引の限界。
+        </p>
       </div>
       <div class="card" style="margin-top:14px;padding:8px">
         <canvas id="plot" width="760" height="210"></canvas>
+        <p class="legend" id="plotlegend">
+          <b>φ曲線</b> &mdash; <span class="sw" style="background:#2563eb"></span>分岐A
+          <span class="sw" style="background:#db2777"></span>分岐B
+          ●＝つり合い点（極小）　◆＝現在位置。曲線が途切れる区間はリンクが組めない（解なし）領域。
+        </p>
       </div>
 
       <div class="card" id="results">
@@ -108,18 +124,6 @@
         </div>
       </div>
 
-      <p class="hint">
-        操作 &mdash; <b>吊り点</b>(▽)・<b>取付点</b>(○)・<b>物体</b>をドラッグ、または右の欄に数値を直接入力（双方向に同期）。物体は <b>Shift+ドラッグ</b>で回転。<br>
-        φ曲線 &mdash; <span class="sw" style="background:#2563eb"></span>分岐A&nbsp;
-        <span class="sw" style="background:#db2777"></span>分岐B&nbsp;
-        ●＝つり合い点（極小）　◆＝現在位置。曲線が途切れる区間はリンクが組めない（解なし）領域。<br>
-        巻き上げ経路 &mdash; <span class="sw" style="background:#a8c0ee"></span>掃引形状（手順全体で物体が通過した領域）、破線の輪郭＝各ステップの到達姿勢。<br>
-        重心：<span class="sw" style="background:#ea580c"></span>2本とも張る&nbsp;
-        <span class="sw" style="background:#7c3aed"></span>片方たるみ／
-        <span class="sw" style="background:#0891b2"></span>最左点&nbsp;
-        <span class="sw" style="background:#16a34a"></span>最右点。
-        丸数字＝各ステップの到達位置、○＝たるみ／張り直しの切り替わり点、破線＝掃引の限界。
-      </p>
     </div>
 
     <div class="card" id="panel">
@@ -1138,6 +1142,8 @@ function drawHoistPlot(kind){
 }
 
 function drawPlot(){
+  const pl=document.getElementById('plotlegend');
+  if(pl) pl.hidden=(plotMode!=='phi');       // φ曲線の凡例は該当モードだけ
   pctx.clearRect(0,0,pv.width,pv.height);
   if(plotMode==='phi') drawPhiPlot(); else drawHoistPlot(plotMode);
 }
